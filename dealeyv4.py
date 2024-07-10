@@ -16,9 +16,9 @@ import logging
 import sys
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-st.write("OpenAI_API_Key", st.secrets["openai_api_key"])
-st.write("Firecrawl_API_Key", st.secrets["firecrawl_api_key"])
-st.write("Search_API_Key", st.secrets["search_api_key"])
+# st.secrets["openai_api_key"]) for openai_api_key
+# st.secrets["firecrawl_api_key"]) for firecrawl_api_key
+# st.secrets["search_api_key"]) for search_api_key
 
 client = OpenAI(api_key=st.secrets["openai_api_key"]) ### ENTER YOUR FIRECRAWL API KEY HERE
 start_time = timer()
