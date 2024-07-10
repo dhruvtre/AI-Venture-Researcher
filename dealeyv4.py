@@ -14,6 +14,7 @@ from langchain_community.document_loaders import FireCrawlLoader
 from tqdm import tqdm
 import logging
 import sys
+import streamlit as st
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # st.secrets["openai_api_key"]) for openai_api_key
@@ -776,9 +777,6 @@ def output_generation(user_query, task_context_required, list_of_answers, output
 def run_async_workspace(list_of_links):
     # This function synchronously runs the asynchronous research_workspace function
     return asyncio.run(research_workspace(list_of_links))
-
-  
-import streamlit as st
 
 # Assuming these functions are defined elsewhere in your codebase
 # from your_module import task_classification, existing_task_context, task_context_collection, task_context_summarisation, task_planning, plan_executor, run_async_workspace, chunking_research_ouptut, query_engine_generation, query_generation, information_retrieval, output_generation
