@@ -885,7 +885,7 @@ steps = [
     "Working on output"
 ]
 
-st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/Group 5-2.png", width=100)
+st.image("Group 5-2.png", width=100)
 st.write(
     """
     ### Create Company Profile and Industry Reports!
