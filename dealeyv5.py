@@ -1,6 +1,10 @@
-### implemented 10 batch size for firecrawl
-### error handling if search results return an error
-### updated output format to markdown. 
+#adding section-wise query and output generation
+
+#creating a dictionary for sections. 
+#only implementing it in query and output geneartion right now. 
+#implementation would be to make a dictionary with one property being report_type, which can be a global dictionary. 
+#the functions impacted are query_generation and output_generation
+#updating streamlit front end - updated the page_config, added logo image
 
 import io
 import os
@@ -14,26 +18,32 @@ from langchain_community.document_loaders import FireCrawlLoader
 from tqdm import tqdm
 import logging
 import sys
-import streamlit as st
+from section_dictionary import REPORT_SECTIONS
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+import streamlit as st
 
-# st.secrets["openai_api_key"]) for openai_api_key
-# st.secrets["firecrawl_api_key"]) for firecrawl_api_key
-# st.secrets["search_api_key"]) for search_api_key
+st.set_page_config(page_title="AI Report Generator - Dealey")
 
-client = OpenAI(api_key=st.secrets["openai_api_key"]) ### ENTER YOUR FIRECRAWL API KEY HERE
+client = OpenAI(api_key=st.secrets["openai_api_key"])
+FirecrawlAPI_key =st.secrets["firecrawl_api_key"] ### ENTER YOUR FIRECRAWL API KEY HERE
 start_time = timer()
 
+# Initialize the async client
+async_client = AsyncOpenAI(api_key=st.secrets["openai_api_key"])
 
-def openai_call_wo_tools(model, message_history):
-    response = client.chat.completions.create(
-    model=model,
-    messages=message_history,
-    temperature = 0.8
-    )
-    response_message = response.choices[0].message
-    response_message_content = response_message.content
-    return response_message_content
+async def openai_call_wo_tools(model, message_history):
+    try:
+        response = await async_client.chat.completions.create(
+            model=model,
+            messages=message_history,
+            temperature=0.8
+        )
+        response_message = response.choices[0].message
+        response_message_content = response_message.content
+        return response_message_content
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
 def openai_w_tools(messages, tools, tool_choice, model):
     try:
@@ -51,7 +61,7 @@ def openai_w_tools(messages, tools, tool_choice, model):
 
 #task classification system
 
-def task_classification(user_query):
+async def task_classification(user_query):
   task_classification_task_prompt = f'''You are a text classification AI agent. Please review the following user query and classify it in one of the four listed task categories.
 
   ###USER QUERY
@@ -70,129 +80,132 @@ def task_classification(user_query):
   AGENT: ###create_company_profiles'''
   task_classification_message_history = [{"role": "user",
                                           "content": task_classification_task_prompt}]
-  task_classifciation_response = openai_call_wo_tools("gpt-3.5-turbo", task_classification_message_history)
+  task_classifciation_response = await openai_call_wo_tools("gpt-3.5-turbo", task_classification_message_history)
   logging.info(f"Task label generated: {task_classifciation_response}")
 
-  macro_reports_format = '''### Macro Industry Report
+  macro_reports_format = '''
 
-#### 1. Industry Overview
+#### Industry Overview
 - **Industry name/sector**: 
 - **Brief description**: (2-3 sentences)
 - **Key sub-sectors or segments**: 
 - **Major players**: 
 - **Recent developments**
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#): 
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name 
 
-#### 2. Market Size and Growth
+#### Market Size and Growth
 - **Total Addressable Market (TAM)**: 
 - **Current market size**: 
 - **Historical growth rate**: 
 - **Projected growth rate** (next 3-5 years): 
 - **Key growth drivers**
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#): 
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 3. Competitive Landscape
+#### Competitive Landscape
 - **Major competitors**: 
 - **Market share distribution**: 
 - **Recent M&A activity**: 
 - **Barriers to entry**: 
 - **Competitive strategies**
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#): 
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 4. Technology and Trends
+#### Technology and Trends
 - **Current technological disruptions**: 
 - **Emerging technologies**: 
 - **Adoption rates of new technologies**: 
 - **Key innovations**: 
 - **Impact on industry**
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#): 
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 5. Investment and Future Outlook
+#### Investment and Future Outlook
 - **Recent notable investments**: 
 - **Active VCs and strategic investors**: 
 - **Emerging investment themes**: 
 - **Short-term industry forecast** (1-2 years): 
 - **Long-term industry projections** (5-10 years):
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)'''
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name'''
 
-  company_profile_format = '''### Company Profile
+  company_profile_format = '''
 
-#### 1. Company Basics
+#### Company Basics
 - **Company name**: 
 - **Industry/sector**: 
 - **Founded date**: 
 - **Brief description** (1-2 sentences): 
 - **Headquarters location**: 
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 2. Product/Service
+#### Product/Service
 - **Core offering description**: 
 - **Target market/customer segments**: 
 - **Key pain points addressed**: 
 - **Unique selling proposition**: 
 - **Key differentiators from competitors**: 
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 3. Financials
+#### Financials
 - **Total funding raised**: 
 - **Last funding round details** (if available): 
 - **Revenue model** (how they make money): 
 - **Current revenue** (if available): 
 - **Profitability status**: 
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 4. Team
+#### Team
 - **Founder(s) name(s) and brief background**: 
 - **Key team members**: 
 - **Advisors and board members**: 
 - **Notable hires**: 
 - **Team size and growth rate**: 
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 5. Traction and Market
+#### Traction and Market
 - **Key metrics** (e.g., number of users, customers, growth rate)**: 
 - **Notable partnerships or clients** (if any)**: 
 - **Market size (TAM)**: 
 - **Key competitors**: 
 - **Recent market trends**: 
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name
 
-#### 6. Recent Developments
+#### Recent Developments
 - **Latest news or milestones**: 
 - **Upcoming product launches or expansions**: 
 - **Strategic initiatives**: 
 - **Industry awards or recognitions**: 
 - **Future plans and roadmap**: 
 - **Citations/References**: 
-  - [Reference 1](#)
-  - [Reference 2](#)'''
+  - [Reference 1](#) - Source Name
+  - [Reference 2](#) - Source Name'''
 
   if task_classifciation_response == "###create_company_profiles":
     return task_classifciation_response, company_profile_format
   elif task_classifciation_response == "###create_macro_industry_reports":
     return task_classifciation_response, macro_reports_format
 
-def existing_task_context(user_query, task_classification_label, output_format):
+def run_task_classification(user_query):
+    return asyncio.run(task_classification(user_query))
+
+async def existing_task_context(user_query, task_classification_label, output_format):
   macro_reports_context = '''What is the specific industry or sector, including sub-sectors or verticals of interest?
   What is the geographic focus of the industry research task? Is it global, regional, or country-specific analysis?
   What is the time frame for the research, including historical data coverage and future projection or forecast period?'''
@@ -219,11 +232,14 @@ def existing_task_context(user_query, task_classification_label, output_format):
 
                             Your output should only include any existing context, under the relevant context question.'''}]
 
-  existing_context = openai_call_wo_tools("gpt-4-turbo", existing_context_chat)
+  existing_context = await openai_call_wo_tools("gpt-4-turbo", existing_context_chat)
   print("Existing context gathered")
   return existing_context, task_context_required
 
-def task_context_collection(existing_context, task_classification_label, user_query, task_context_required):
+def run_existing_task_context(user_query, task_classification_label, output_format):
+    return asyncio.run(existing_task_context(user_query, task_classification_label, output_format))
+
+async def task_context_collection(existing_context, task_classification_label, user_query, task_context_required):
     task_context_collection_task_prompt = f'''You are an experienced VC Analyst doing {task_classification_label} for a user. Here is the complete text of the user query:
 
   ###USER QUERY
@@ -244,10 +260,14 @@ def task_context_collection(existing_context, task_classification_label, user_qu
   Ask questions to the user. Do not ask them for context that you already have.'''
     questions_for_task_context_chat = [{"role": "user",
                                         "content": task_context_collection_task_prompt}]
-    questions_for_task_context = openai_call_wo_tools("gpt-4-turbo", questions_for_task_context_chat)
+    questions_for_task_context = await openai_call_wo_tools("gpt-4-turbo", questions_for_task_context_chat)
     return questions_for_task_context
 
-def task_context_summarisation(existing_context, task_classification_label, user_query, task_context_required, questions_for_task_context, additional_answers):
+def run_task_context_collection(existing_context, task_classification_label, user_query, task_context_required):
+    return asyncio.run(task_context_collection(existing_context, task_classification_label, user_query, task_context_required))
+
+
+async def task_context_summarisation(existing_context, task_classification_label, user_query, task_context_required, questions_for_task_context, additional_answers):
     task_context_summarisation_task_prompt = f'''You are an experienced VC Analyst doing {task_classification_label} for a user. Here is the complete text of the user query:
 
   ###USER QUERY
@@ -285,9 +305,11 @@ def task_context_summarisation(existing_context, task_classification_label, user
     task_context_summary_conversation = [{"role": "user", 
                                           "content": task_context_summarisation_task_prompt}]
     
-    summarised_task_context = openai_call_wo_tools("gpt-4-turbo", task_context_summary_conversation)
+    summarised_task_context = await openai_call_wo_tools("gpt-4-turbo", task_context_summary_conversation)
     return summarised_task_context
 
+def run_task_context_summarisation(existing_context, task_classification_label, user_query, task_context_required, questions_for_task_context, additional_answers):
+    asyncio.run(task_context_summarisation(existing_context, task_classification_label, user_query, task_context_required, questions_for_task_context, additional_answers))
 
 tool_set = [
         {
@@ -362,7 +384,7 @@ def google_general_search(search_query, gl):
         logging.error(f"Unexpected error: {str(e)}")
         return f"An unexpected error occurred. {str(e)}"
 
-def task_planning(task_context_message, task_classification_label, user_query, tool_set, output_format, existing_research=""):
+async def task_planning(task_context_message, task_classification_label, user_query, tool_set, output_format, existing_research=""):
 
   task_planning_system_prompt = f'''You are an experienced VC Analyst helping your manager, a principal partner at a VC fund at doing tasks.
   To do this, here is all the information that will be shared with you:
@@ -463,8 +485,11 @@ def task_planning(task_context_message, task_classification_label, user_query, t
                                  "content": task_planning_system_prompt},
                                 {"role": "user",
                                  "content": task_planning_task_prompt}]
-  task_planning = openai_call_wo_tools("gpt-4-turbo", task_planning_chat_history)
+  task_planning = await openai_call_wo_tools("gpt-4-turbo", task_planning_chat_history)
   return task_planning
+
+def run_task_planning(task_context_message, task_classification_label, user_query, tool_set, output_format, existing_research=""):
+    return asyncio.run(task_planning(task_context_message, task_classification_label, user_query, tool_set, output_format, existing_research=""))
 
 def plan_executor(task_plan, tool_set):
     logging.info("Starting plan execution")
@@ -531,7 +556,7 @@ import asyncio
 import certifi
 import ssl
 
-FirecrawlAPI_key = f'Bearer {st.secrets["firecrawl_api_key"]}'  # Replace with your actual Firecrawl API key
+FirecrawlAPI_key = st.secrets["firecrawl_api_key"]  # Replace with your actual Firecrawl API key
 
 async def fetch_data(session, url):
     json_payload = {
@@ -544,7 +569,7 @@ async def fetch_data(session, url):
     try:
         logging.info(f"Starting fetch for URL: {url}")
         async with session.post('https://api.firecrawl.dev/v0/scrape',
-                                headers={'Authorization': FirecrawlAPI_key},
+                                headers={'Authorization': f'Bearer {FirecrawlAPI_key}'},
                                 json=json_payload,
                                 ssl=ssl.create_default_context(cafile=certifi.where())) as response:
             if response.status == 200:
@@ -703,83 +728,139 @@ def query_engine_running(query_engine, user_query):
                        "response_sources": response_2.source_nodes[0].node.get_metadata_str()}
     return response_format
 
-def query_generation(user_query, task_context_required, output_format):
-  #generating list of queries
+from typing import List, Dict, Tuple
 
-  query_generation_system_prompt = f'''You are an experienced VC Analyst creating the final output of the following task for a user, a principal partner at a VC fund. Here is all the information available to you:
-  ###USER QUERY
-  {user_query}
+async def query_generation(user_query: str, task_context_required: str, list_of_sections: List[Dict]) -> List[Dict]:
+    async def generate_queries_for_section(section: Dict) -> Dict:
+        query_generation_system_prompt = f'''You are an experienced VC Analyst creating the final output of the following task for a user, a principal partner at a VC fund. Here is all the information available to you:
 
-  ###ALL TASK CONTEXT
-  {task_context_required}
+###USER QUERY
+{user_query}
 
-  ####OUTPUT FORMAT
-  {output_format}
+###ALL TASK CONTEXT
+{task_context_required}
 
-  Here is the format that this company report should follow: 
+###SECTION INFORMATION
+Name: {section['name']}
+Description: {section['description']}
+Best Practices:
+{(section['best_practices'])}
 
-  Your current task is to generate a list of queries to search for this information from a research workspace which includes a variety of resources for the task.
+Your current task is to generate a list of queries to search for information related to this section from a research workspace which includes a variety of resources for the task.
 
-  Your final output should include nothing but the list of queries in the specified format below.
-  
-  ####OUTPUT FORMAT
-  
-  <QUERIES>
-  <QUERY>"enter query text"</QUERY>
-  <QUERY>"enter query 2 text"</QUERY>'''
+Your final output should include nothing but the list of queries in the specified format below.
 
-  query_generation_chat_history = [{"role": "system",
-                                 "content": query_generation_system_prompt}]
-  query_generation = openai_call_wo_tools("gpt-4-turbo", query_generation_chat_history)
-  return query_generation
+####OUTPUT FORMAT
+
+<QUERIES>
+<QUERY>"enter query text"</QUERY>
+<QUERY>"enter query 2 text"</QUERY>
+</QUERIES>'''
+
+        query_generation_chat_history = [{"role": "system", "content": query_generation_system_prompt}]
+        query_generation = await openai_call_wo_tools("gpt-4-turbo", query_generation_chat_history)
+        
+        return {
+            "section_key": section['key'],
+            "section_name": section['name'],
+            "queries": query_generation
+        }
+
+    tasks = [generate_queries_for_section(section) for section in list_of_sections]
+    return await asyncio.gather(*tasks)
 
 import re
 
-def information_retrieval(query_gen_text, query_engine):
-    list_of_answers = []
-    queries = re.findall(r'<QUERY>\s*"([^"]+)"\s*</QUERY>', query_gen_text)
-    for query in queries: 
-        query_response = query_engine_running(query_engine, query)
-        answer_set = {"query": query,
-                 "answer": query_response}
-        list_of_answers.append(answer_set)
-    # Save list_of_answers to a JSON file
-    with open('list_of_answers.json', 'w') as json_file:
-        json.dump(list_of_answers, json_file, indent=4)
-    return list_of_answers
+async def information_retrieval(section_queries: List[Dict], query_engine) -> List[Dict]:
+    async def process_query(query: str) -> Dict:
+        # Use asyncio.to_thread to run the synchronous function in a separate thread
+        query_response = await asyncio.to_thread(query_engine_running, query_engine, query)
+        return {"query": query, "answer": query_response}
 
-def output_generation(user_query, task_context_required, list_of_answers, output_format):
-  output_generation_system_prompt = f'''You are an experienced VC Analyst creating the final output of the following task for a user, a principal partner at a VC fund. Here is all the information available to you:
+    async def process_section(section: Dict) -> Dict:
+        queries = re.findall(r'<QUERY>\s*"([^"]+)"\s*</QUERY>', section['queries'])
+        tasks = [process_query(query) for query in queries]
+        answers = await asyncio.gather(*tasks)
+        return {
+            "section_key": section['section_key'],
+            "section_name": section['section_name'],
+            "answers": answers
+        }
 
-  ###USER QUERY
-  {user_query}
+    tasks = [process_section(section) for section in section_queries]
+    results = await asyncio.gather(*tasks)
 
-  ###ALL TASK CONTEXT
-  {task_context_required}
+    return results
 
-  ###TASK SPECIFIC RESEARCH
-  {list_of_answers}
+# Your original synchronous query_engine_running function
+def query_engine_running(query_engine, user_query):
+    response_2 = query_engine.query(user_query)
+    response_format = {
+        "response": response_2.response,
+        "response_sources": response_2.source_nodes[0].node.get_metadata_str()
+    }
+    return response_format
 
-  ####OUTPUT FORMAT
-  {output_format}
+import asyncio
 
-  Your main goal is to output the information available to you in a fixed one-pager format.
+async def output_generation(user_query: str, task_context_required: str, section_results: List[Dict], output_format: str):
+    async def generate_section(section: Dict) -> Tuple[str, str]:
+        section_prompt = f'''You are an experienced VC Analyst creating a section of a report for a user, a principal partner at a VC fund. Here is all the information available to you:
 
-  The document should include all relevant citations.
+        ###USER QUERY
+        {user_query}
 
-  Your final output should include nothing but the output in the specified format.'''
+        ###ALL TASK CONTEXT
+        {task_context_required}
 
-  output_generation_chat_history = [{"role": "system",
-                                 "content": output_generation_system_prompt}]
-  output_generation = openai_call_wo_tools("gpt-4-turbo", output_generation_chat_history)
-  return output_generation
+        ###SECTION NAME
+        {section['section_name']}
+
+        ###SECTION RESEARCH
+        {json.dumps(section['answers'], indent=2)}
+
+        ###OUTPUT FORMAT
+        {output_format}
+
+        Your task is to generate the content for the "{section['section_name']}" section of the report.
+        Follow the best practices provided and use the research information to create a detailed and informative section.
+        Include relevant citations where appropriate.
+        Your output should be in the specified format and ready to be inserted directly into the final report.'''
+
+        section_chat_history = [{"role": "system", "content": section_prompt}]
+        section_content = await openai_call_wo_tools("gpt-4-turbo", section_chat_history)
+        return (section['section_name'], f"\n\n{section_content}\n\n")
+
+    # Create tasks for all sections
+    tasks = [generate_section(section) for section in section_results]
+    
+    # Use as_completed to yield results as they finish
+    for completed_task in asyncio.as_completed(tasks):
+        section_name, section_content = await completed_task
+        yield section_name, section_content
+
+def run_output_generation(user_query, task_context_required, section_results, output_format): 
+    output_placeholder = st.empty()
+    full_output = ""
+
+    async def process_sections():
+        nonlocal full_output
+        async for section_name, section_content in output_generation(user_query, task_context_required, section_results, output_format):
+            full_output += section_content
+            output_placeholder.markdown(full_output)
+
+    asyncio.run(process_sections())
+    return full_output
 
 def run_async_workspace(list_of_links):
     # This function synchronously runs the asynchronous research_workspace function
     return asyncio.run(research_workspace(list_of_links))
 
-# Assuming these functions are defined elsewhere in your codebase
-# from your_module import task_classification, existing_task_context, task_context_collection, task_context_summarisation, task_planning, plan_executor, run_async_workspace, chunking_research_ouptut, query_engine_generation, query_generation, information_retrieval, output_generation
+def run_query_generation(user_query, task_context_required, list_of_sections):
+    return asyncio.run(query_generation(user_query, task_context_required, list_of_sections))
+
+def run_information_retrieval(section_queries, query_engine):
+    return asyncio.run(information_retrieval(section_queries, query_engine))
 
 # Initialize session state variables
 if 'label' not in st.session_state:
@@ -790,73 +871,121 @@ if 'output_format_r' not in st.session_state:
     st.session_state.output_format_r = ""
 if 'task_submitted' not in st.session_state:
     st.session_state.task_submitted = False
+if 'task_sections' not in st.session_state:
+    st.session_state.task_sections = []
 if 'additional_context_submitted' not in st.session_state:
     st.session_state.additional_context_submitted = False
 
-st.title("Dealey - Version 1")
-st.write("You can use me to create company profiles or industry reports.")
-st.write("I currently only have access to Google Search but I will get more tools super soon.")
+steps = [
+    "Generating research plan",
+    "Executing research plan",
+    "Reading research material",
+    "Indexing material",
+    "Finding answers",
+    "Working on output"
+]
 
-# Task submission form
+st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/Group 5-2.png", width=100)
+st.write(
+    """
+    ### Create Company Profile and Industry Reports!
+
+    Welcome to Dealey! 👋 
+    I'm an AI Investment Analyst, here to help you create comprehensive company profiles and industry reports with ease.✨
+    """
+)
+st.info("🚀 Dealey currently uses OpenAI, SearchAPI and Llamaindex to gather and synthesize information from various sources, providing you with insightful and up-to-date reports.")
+
 with st.form(key='task_form'):
     task_statement = st.text_input('Please describe the task I can help you with today.')
     submit_button = st.form_submit_button('Submit')
 
-    if submit_button and task_statement:
+
+if task_statement and submit_button:
         st.session_state.task_submitted = True
 
 # Process task if submitted
-if st.session_state.task_submitted:
-    task_label_run, output_format_return = task_classification(task_statement)
+if st.session_state.get('task_submitted', False):
+    task_label_run, output_format_return = run_task_classification(task_statement)
     st.session_state.label = task_label_run
+    if task_label_run == "###create_company_profiles":
+      st.session_state.task_sections = REPORT_SECTIONS['company_profile']
+    elif task_label_run == "###create_macro_industry_reports":
+        st.session_state.task_sections = REPORT_SECTIONS['macro_industry_report']
     st.markdown(f"Task identified as ***'{st.session_state.label}'***")
     st.session_state.output_format_r = output_format_return
-    st.write('Understanding your query!')
+    with st.spinner("Understanding your query..."): 
+        existing_context_gathered, task_context_required_run = run_existing_task_context(task_statement, st.session_state.label, st.session_state.output_format_r)
+        st.session_state.task_context_r = existing_context_gathered
+    st.markdown("✅ **Understood your query.**")
+    with st.spinner("Checking for clarifications..."):
+        message = run_task_context_collection(existing_context_gathered, st.session_state.label, task_statement, task_context_required_run)
+        with st.chat_message("Dealey"):
+            st.write(message)
     
-    existing_context_gathered, task_context_required_run = existing_task_context(task_statement, st.session_state.label, st.session_state.output_format_r)
-    st.session_state.task_context_r = existing_context_gathered
-    st.write('Checking for clarifications.')
-    
-    message = task_context_collection(existing_context_gathered, st.session_state.label, task_statement, task_context_required_run)
-    with st.chat_message("Dealey"):
-        st.write(message)
-    
-    # Additional context form
-    with st.form(key='additional_context_form'):
-        additional_context = st.text_input('Please provide additional context.')
-        share_button = st.form_submit_button('Share Additional Context')
+        # Additional context form
+        with st.form(key='additional_context_form'):
+            additional_context = st.text_input('Please provide additional context.')
+            share_button = st.form_submit_button('Share Additional Context')
         
-        if share_button and additional_context:
-            st.session_state.additional_context_submitted = True
+    if share_button and additional_context:
+        st.session_state.additional_context_submitted = True
 
     # Process additional context if submitted
-    if st.session_state.additional_context_submitted:
-        final_context_gathered = task_context_summarisation(existing_context_gathered, st.session_state.label, task_statement, task_context_required_run, message, additional_context)
+    if st.session_state.get('additional_context_submitted', False):
+        final_context_gathered = run_task_context_summarisation(existing_context_gathered, st.session_state.label, task_statement, task_context_required_run, message, additional_context)
         st.session_state.task_context_r = final_context_gathered
         st.markdown("Thank you for sharing necessary details. I am ready to get started!")
         
         with st.status("Doing the work...", expanded=True):
-            st.write("Generating research plan now.")
-            task_plan_run = task_planning(final_context_gathered, st.session_state.label, task_statement, tool_set, st.session_state.output_format_r, existing_research="")
-            st.write('Research plan generated.')
-            st.write('Executing research plan now.')
+            step_placeholders = [st.empty() for _ in steps]
+
+            for i, step in enumerate(steps):
+                step_placeholders[i].markdown(f"⏳ {step}")
+            
+            ## Generating Research Plan
+            step_placeholders[0].markdown("🔄 **Generating research plan**")
+            task_plan_run = run_task_planning(final_context_gathered, st.session_state.label, task_statement, tool_set, st.session_state.output_format_r, existing_research="")
+            step_placeholders[0].markdown("✅ **Generating research plan**")
+            
+            ## Executing Research Plan
+            step_placeholders[1].markdown("🔄 **Executing research plan**")
             plan_results = plan_executor(task_plan_run, tool_set)
-            st.write('Research completed.')
-            st.write('Reading research material now.')
+            step_placeholders[1].markdown("✅ **Executing research plan**")
+
+            ## Reading Research Material
+            step_placeholders[2].markdown("🔄 **Reading research material**")
             research_results = run_async_workspace(plan_results)
-            st.write('Reading complete. Indexing material now!')
+            step_placeholders[2].markdown("✅ **Reading research material**")
+            
+            ## Indexing Materal
+            step_placeholders[3].markdown("🔄 **Indexing material**")
             research_run_docs = chunking_research_ouptut(research_results)
             query_engine_run = query_engine_generation(research_run_docs)
-            queries_run = query_generation(task_statement, st.session_state.task_context_r, st.session_state.output_format_r)
-            st.write('Indexing complete. Finding answers now.')
-            list_of_answers_run = information_retrieval(queries_run, query_engine_run)
-            st.write('Starting to work on output now.')
-            final_output = output_generation(task_statement, st.session_state.task_context_r, list_of_answers_run, st.session_state.output_format_r)
+            queries_run = run_query_generation(task_statement, st.session_state.task_context_r, st.session_state.task_sections)
+            step_placeholders[3].markdown("✅ **Indexing material**")
+
+            ## Querying Research Workspace
+            step_placeholders[4].markdown("🔄 **Finding answers**")
+            list_of_answers_run = run_information_retrieval(queries_run, query_engine_run)
+            step_placeholders[4].markdown("✅ **Finding answers**")
+
+            ## Generating Output
+            step_placeholders[5].markdown("🔄 **Working on output**")
+            final_output = run_output_generation(task_statement, st.session_state.task_context_r, list_of_answers_run, st.session_state.output_format_r)
+            step_placeholders[5].markdown("✅ **Working on output**")
             end_time = timer()
             logging.info(f"Total_time_taken: {end_time - start_time}")
-            st.markdown(final_output)
 
 elif not task_statement:
     st.error("Please enter a task description.")
-    
-    
+       
+# Footer
+st.markdown("---")
+st.write("Dealey is powered by advanced AI and is constantly learning. Your feedback helps us improve!")
+feedback = st.slider("How would you rate your experience with Dealey?", 1, 5, 3)
+logging.info(f"The user feedback score was: {feedback}")
+if feedback > 3:
+    st.success("Thank you for your positive feedback!")
+elif feedback < 3:
+    st.warning("We're sorry your experience wasn't better. Please let us know how we can improve.")
