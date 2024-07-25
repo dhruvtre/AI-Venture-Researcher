@@ -58,6 +58,8 @@ with col2:
         st.image("google_logo.png", width=30)
     with toolkit_col2:
         st.image("openai_logo.png", width=30)
+    with toolkit_col3:
+        st.image("firecrawl_logo.png", width=30)
     
     # Row 2
     with toolkit_col1:
