@@ -55,15 +55,15 @@ with col2:
     
     # Row 1
     with toolkit_col1:
-        st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/google_logo.png", width=30)
+        st.image("google_logo.png", width=30)
     with toolkit_col2:
-        st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/openai_logo.png", width=30)
+        st.image("openai_logo.png", width=30)
     
     # Row 2
     with toolkit_col1:
-        st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/llamaindex_logo.jpeg", width=30)
+        st.image("llamaindex_logo.jpeg", width=30)
     with toolkit_col2:
-        st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/streamlit_logo.png", width=30)
+        st.image("streamlit_logo.png", width=30)
 
 # Call to action
 st.markdown("---")
