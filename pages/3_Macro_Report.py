@@ -71,7 +71,7 @@ steps = [
 
 st.set_page_config(page_title="Macro Industry Report - Dealey", page_icon="📈")
 with st.sidebar:
-    st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/Group 5-2.png", width=100)
+    st.image("Group 5-2.png", width=100)
 
 if 'industry_name' not in st.session_state:
     st.session_state['industry_name'] = ''
@@ -80,7 +80,7 @@ if 'list_of_sections' not in st.session_state:
 if 'macro_final_output' not in st.session_state:
     st.session_state['macro_final_output'] = ''
 
-st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/Group 5-2.png", width=100)
+st.image("Group 5-2.png", width=100)
 
 st.write(
     """
