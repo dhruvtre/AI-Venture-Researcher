@@ -79,7 +79,7 @@ steps = [
 ]
 
 with st.sidebar:
-    st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/Group 5-2.png", width=100)
+    st.image("Group 5-2.png", width=100)
 
 if 'company_name' not in st.session_state:
     st.session_state['company_name'] = ''
@@ -88,7 +88,7 @@ if 'list_of_sections' not in st.session_state:
 if 'company_final' not in st.session_state:
     st.session_state['company_final'] = ''
 
-st.image("/Users/dhruvtrehan/Documents/localapps/Dealey/Group 5-2.png", width=100)
+st.image("Group 5-2.png", width=100)
 st.write(
     """
     ### Create Company Profile
