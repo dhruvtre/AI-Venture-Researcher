@@ -41,11 +41,13 @@ A multi-page Streamlit application that automates comprehensive research and rep
 
 ## Live Demo
 
-The application is deployed on Streamlit Cloud: [url](https://ai-venture-researcher.streamlit.app/)
+The application is deployed on Streamlit Cloud: [LINK](https://ai-venture-researcher.streamlit.app/)
 
 Note: The application may need to be spun up if accessed after period of inactivity.
 
 ## Demonstrations
+
+**Link to Twitter Thread from Jul 26, 2024 - [LINK](https://x.com/i/status/1816845672685228127)**
 
 Here are some examples of the system in action:
 
