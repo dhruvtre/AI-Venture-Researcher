@@ -11,7 +11,8 @@ A multi-page Streamlit application that automates comprehensive research and rep
 
 ## Technical Architecture
 
-![image](https://github.com/user-attachments/assets/2200a04f-4f7c-4d11-bfd2-e02dee8e4999)
+![image](https://github.com/user-attachments/assets/358c675d-9f52-46b3-9c75-64965da55c9e)
+
 
 
 ### Components
