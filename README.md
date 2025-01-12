@@ -1,4 +1,4 @@
-# AI Company & Industry Report Generator
+# AI Venture Researcher
 
 A multi-page Streamlit application that automates comprehensive research and report generation for companies and industries. The system leverages AI to gather, analyze, and synthesize information from across the web into detailed, structured reports.
 
