@@ -4,7 +4,6 @@ import io
 import os
 from openai import OpenAI
 from openai import AsyncOpenAI
-import openai
 from pprint import pprint
 import time
 from timeit import default_timer as timer
@@ -83,7 +82,7 @@ tool_set = [
         }]
 logging.info(f"Tool set defined with {len(tool_set)} tools")
 
-import requests
+quests
 import json
 
 def google_general_search(search_query, gl):
@@ -476,7 +475,7 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.core import Settings
 from llama_index.llms.openai import OpenAI
 from llama_index.core.retrievers import VectorIndexRetriever
-from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.query_engine trieverQueryEngine
 from llama_index.core.postprocessor import SimilarityPostprocessor
 from llama_index.core.data_structs import Node
 from llama_index.core.schema import NodeWithScore
@@ -611,7 +610,7 @@ Your final output should include nothing but the list of queries in the specifie
         logging.error(f"Error during query generation: {str(e)}")
         raise
 
-import re
+
 
 async def information_retrieval(section_queries: List[Dict], query_engine) -> List[Dict]:
     logging.info("Starting information retrieval process")
